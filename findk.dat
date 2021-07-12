@@ -1,0 +1,117 @@
+import java.nio.file.Files;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.net.URL;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+public class Findk {
+    static long start;
+    static long end;
+    static long Total;
+    
+    public static void main(String[] args) {
+        //read the partial-key file
+        URL url1=Findk.class.getResource("partial-key.dat");
+        String k_Path=url1.getPath();//path of file to read it
+      
+        byte[] p_k_byte=readFile(k_Path);//put the content of file in array of bytes
+        //read the ciphertext file
+        URL url2=Findk.class.getResource("ciphertext2.dat");
+        String cipherPath= url2.getPath();//path of file to read it
+        byte[]  cipher_byte= readFile(cipherPath);//put the content of file in array of bytes
+        
+        start=System.currentTimeMillis();//to calculate the time that will take to find the correct key.
+        GuessKey_Decrypt(p_k_byte,cipher_byte);//guess the key and decrypt the file
+    }
+    
+    public static byte[] readFile(String path){
+        File file=new File(path);
+        byte fileEncryptedContent[]=new byte[(int) file.length()];
+        try{
+            fileEncryptedContent=Files.readAllBytes(file.toPath());// read the file and put it in the array
+        }catch(Exception e){
+            System.out.println("Error in reading file "+e);
+        }
+        return fileEncryptedContent;
+    }
+    
+    public static void GuessKey_Decrypt(byte[] p_k_byte,byte[] cipher_byte){
+       //loops for the last 4 bytes
+        for (int i = 0; i <= 256; i++) {
+            for (int j = 0; j <= 256; j++) {
+                for (int k = 0; k <= 256; k++) {
+                    for (int l = 0; l <= 256; l++) {
+                        //to get the bytes in hex
+                        char a=(char)i;
+                        char b=(char)j;
+                        char c=(char)k;
+                        char d=(char)l;
+                        
+                        String miss_key=String.valueOf(a)+String.valueOf(b)+String.valueOf(c)+String.valueOf(d);
+                        try{
+                            byte[] miss_Key_byte={(byte)a,(byte)b,(byte)c,(byte)d};
+                            byte[] full_key= merge_keys(p_k_byte, miss_Key_byte);//get the full key to check 
+                            SecretKey Key = new SecretKeySpec(full_key,0,full_key.length,"AES");
+                            String plain=decryptFile(Key,cipher_byte);//start the decryption
+                            
+                            if(plain.startsWith("Salam")){
+                                System.out.println("Missed Key String: "+miss_key);
+                                System.out.println("Missed Key Hex code: "+Integer.toHexString(i).toUpperCase()+Integer.toHexString(j).toUpperCase()
+                                +Integer.toHexString(k).toUpperCase()+Integer.toHexString(l).toUpperCase());
+                                System.out.println("Full key string: "+new String(full_key));
+                                FullKeyInHex(full_key);//the key in hex
+                                System.out.println("plain text: "+plain);
+                                
+                                end=System.currentTimeMillis();//end of find the missed key  
+                                Total=end-start;//the time that's took to find the correct key
+                                System.out.println("Time taken in Seconds: "+(int)(Total/1000)%60+"s");
+                                
+                                writePlain("plain2.dat", plain);//put the result in file
+                                System.exit(0);//stop the loops
+                            }
+                        }
+                        catch(Exception e){
+                            System.out.println("Error"+e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    public static byte[] merge_keys(byte[] p_k_byte,byte[] miss_Key_byte){
+        int p_length =p_k_byte.length;
+        int miss_length =miss_Key_byte.length;
+        byte[] joinedArray=new byte[p_length+miss_length];// to get full key length
+        for (int i = 0; i < joinedArray.length; i++) {
+            
+            joinedArray[i]=(i<p_length?p_k_byte[i]:miss_Key_byte[i-p_length]);
+        }
+        return joinedArray;//the full key
+    }
+    
+    public static void writePlain(String path, String plain)throws IOException{
+        BufferedWriter B= new BufferedWriter(new FileWriter(path));//use class BufferedWriter to Write in file
+            B.write(plain);//write the plain in the file
+            B.close();
+    }
+    
+    public static String decryptFile(SecretKey skey,byte[] cipher_byte)throws Exception{
+        Cipher c=Cipher.getInstance("AES/ECB/NoPadding");//class cipher that's deal with ECB
+        c.init(Cipher.DECRYPT_MODE,skey);//init the object aesCipher of type DECRYPT MODE and the key
+        byte[] bytePlainText=c.doFinal(cipher_byte);//start the Decrypt in put the result in array of bytes
+        return new String(bytePlainText);//convert it to string
+    }
+    public static void FullKeyInHex (byte[] FullKey) {
+    	char[] charArr = new char[FullKey.length] ;
+    	String str = new String(FullKey) ;
+    	charArr =str.toCharArray() ;//convert it to char to convert it to hex
+    	System.out.print("Full key in hex:");
+    	for (int i=0;i<FullKey.length;i++){
+            System.out.print(Integer.toHexString((int)charArr[i]).toUpperCase());//full key in hex	 
+    	}
+    	System.out.println();
+    }
+}
