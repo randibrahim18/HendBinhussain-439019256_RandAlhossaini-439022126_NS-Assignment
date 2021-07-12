@@ -17,7 +17,7 @@ Project is created with:
 Java 	
 ## Setup
 To run this project:
-*drop the two files,(the key and the encrypted message)in the same 
+* drop the two files,(the key and the encrypted message)in the same 
 package of the class.
-*Make sure that you change the path of the plain file to your own path.
-*Finally click the run button. 
+* Make sure that you change the path of the plain file to your own path.
+* Finally click the run button. 
